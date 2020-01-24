@@ -1,2 +1,0 @@
-# AirtableToXML
-Created with CodeSandbox
