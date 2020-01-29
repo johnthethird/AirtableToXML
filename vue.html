@@ -89,7 +89,7 @@
       }
 
       function tmplManifest(rows) {
-        return xml`
+        return `
           <?xml version="1.0" encoding="UTF-8"?>
           <manifest
             xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"
@@ -104,28 +104,28 @@
       }
 
       function tmplManifestRow(row) {
-        return xml`
-          <resource identifier="${row.tableName}" type="imsqti_item_xmlv2p1" href="${row.filename}.xml">
+        return `
+          <resource identifier="${row.identifier}" type="imsqti_item_xmlv2p1" href="${row.filename}">
             <metadata>
                 <imsmd:lom>
                     <imsmd:general>
-                        <imsmd:identifier>${row.tableName}</imsmd:identifier>
+                        <imsmd:identifier>${row.identifier}</imsmd:identifier>
                         <imsmd:catalogentry>
-                            <imsmd:catalog>${row.Book} - Section</imsmd:catalog>
+                            <imsmd:catalog>${row.Book || ""} - Section</imsmd:catalog>
                             <imsmd:entry>
-                                <imsmd:langstring>${row.Section}</imsmd:langstring>
+                                <imsmd:langstring>${row.Section || ""}</imsmd:langstring>
                             </imsmd:entry>
                         </imsmd:catalogentry>
                         <imsmd:catalogentry>
-                            <imsmd:catalog>${row.Book} - Learning Objective</imsmd:catalog>
+                            <imsmd:catalog>${row.Book || ""} - Learning Objective</imsmd:catalog>
                             <imsmd:entry>
-                                <imsmd:langstring>${row["Learning Objective"]}</imsmd:langstring>
+                                <imsmd:langstring>${row["Learning Objective"] || ""}</imsmd:langstring>
                             </imsmd:entry>
                         </imsmd:catalogentry>
                         <imsmd:catalogentry>
-                          <imsmd:catalog>${row.Book} - Topic</imsmd:catalog>
+                          <imsmd:catalog>${row.Book || ""} - Topic</imsmd:catalog>
                           <imsmd:entry>
-                            <imsmd:langstring>${row.Topic}</imsmd:langstring>
+                            <imsmd:langstring>${row.Topic || ""}</imsmd:langstring>
                           </imsmd:entry>
                         </imsmd:catalogentry>
                         <imsmd:catalogentry>
@@ -133,6 +133,18 @@
                             <imsmd:entry>
                                 <imsmd:langstring>Flip Card</imsmd:langstring>
                             </imsmd:entry>
+                        </imsmd:catalogentry>
+                        <imsmd:catalogentry>
+                          <imsmd:catalog>Adaptive Lesson Component</imsmd:catalog>
+                          <imsmd:entry>
+                            <imsmd:langstring>${row.TableOrBox ? "activity" : "concept card"}</imsmd:langstring>
+                          </imsmd:entry>
+                        </imsmd:catalogentry>
+                        <imsmd:catalogentry>
+                          <imsmd:catalog>Text Reference</imsmd:catalog>
+                          <imsmd:entry>
+                            <imsmd:langstring>7</imsmd:langstring>
+                          </imsmd:entry>
                         </imsmd:catalogentry>
                         <imsmd:catalogentry>
                             <imsmd:catalog/>
@@ -152,16 +164,16 @@
                     <imsqti:interactionType>choiceInteraction</imsqti:interactionType>
                 </imsqti:qtiMetadata>
             </metadata>
-            <file href="${row.filename}.xml"/>
+            <file href="${row.filename}"/>
           </resource>
         `;
       }
 
       function tmplRow(row) {
-        return xml`
+        return `
           <?xml version="1.0" encoding="UTF-8"?>
-          <assessmentItem xmlns="http://www.imsglobal.org/xsd/imsqti_v2p1" identifier="${row.tableName}"
-                          title="${row.tableName}"
+          <assessmentItem xmlns="http://www.imsglobal.org/xsd/imsqti_v2p1" identifier="${row.identifier}"
+                          title="${row.identifier}"
                           xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p1 http://www.imsglobal.org/xsd/qti/qtiv2p1/imsqti_v2p1.xsd"
                           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" timeDependent="false">
               <responseDeclaration baseType="identifier" cardinality="single" identifier="RESPONSE">
@@ -181,11 +193,12 @@
               <itemBody>
                   <choiceInteraction minChoices="1" maxChoices="1" shuffle="false" responseIdentifier="RESPONSE">
                       <prompt>
-                        ${row["Original Question"]}
+                        ${row["Original Question"] || ""}
+                        ${row["TableOrBox"] || ""}
                       </prompt>
                       <simpleChoice identifier="CHOICE_000">
-                        ${row["Original Answer"]}
-                        ${(row.Images || []).map(i => `<img alt="${i.filename}" src="${i.url}" />`).join("\n")}
+                        ${row["Original Answer"] || ""}
+                        ${(row.Images || []).map(i => `<img alt="${i.filename}" src="${i.filename}" />`).join("\n")}
                       </simpleChoice>
                   </choiceInteraction>
               </itemBody>
@@ -206,7 +219,7 @@
 
           base(tableName)
             .select({
-              maxRecords: 20,
+              maxRecords: 1000,
               view: "Grid view"
             })
             .eachPage(
@@ -218,7 +231,8 @@
                   record.fields.Images && Array.prototype.push.apply(app.images, record.fields.Images);
                   // Add some fields to the DB row for use by the template
                   record.fields.tableName = tableName;
-                  record.fields.filename = tableName + "-row-" + util.leftFillNum(record.fields.Row, 3) + ".xml";
+                  record.fields.identifier = tableName + "-row-" + util.leftFillNum(record.fields.Row, 3);
+                  record.fields.filename = record.fields.identifier + ".xml";
                   app.rows.push(record.fields);
                   // manifestRows.push(tmplManifestRow(record.fields));
                   // zip.file(filename, tmplRow(record.fields));
